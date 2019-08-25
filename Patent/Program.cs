@@ -1,4 +1,7 @@
 ﻿using AngleSharp;
+using ScrapySharp.Extensions;
+using ScrapySharp.Html;
+using ScrapySharp.Network;
 using System;
 using System.Collections.Specialized;
 using System.Linq;
@@ -11,6 +14,31 @@ namespace Patent
     class Program
     {
         static async Task Main(string[] args)
+        {
+            //await Test1();
+
+            var browser = new ScrapingBrowser();
+
+            //set UseDefaultCookiesParser as false if a website returns invalid cookies format
+            //browser.UseDefaultCookiesParser = false;
+
+            var homePage = browser.NavigateToPage(new Uri("http://epub.sipo.gov.cn/gjcx.jsp"));
+
+            var form = homePage.FindFormById("pato");
+            form["ti"] = "chain";
+            var resultsPage = form.Submit();
+
+            var cps = resultsPage.Html.CssSelect("div.cp_box").ToArray();
+            foreach (var cp in cps)
+            {
+                var imgElm = cp.CssSelect("div.cp_img img").FirstOrDefault();
+                var img = imgElm.GetAttributeValue("src");
+            }
+
+            //var blogPage = resultsPage.FindLinks(By.Text("romcyber blog | Just another WordPress site")).Single().Click();
+        }
+
+        private static async Task Test1()
         {
             //var text = await GetText("区块链");
             var text = await GetText("chain");
