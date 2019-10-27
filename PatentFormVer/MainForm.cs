@@ -112,18 +112,25 @@ namespace PatentFormVer
                 SaveSearch(keywords, type, items);
                 AddStatus($"Saved items from page {pageNum}");
 
-                this.refreshed = false;
-                this.webBrowser.Load(pageUrl);
-
-                await Task.Delay(10000);
-                while (!this.refreshed)
-                {
-                    await Task.Delay(100);
-                }
+                await SetNewCookie();
 
                 if (page.MaxPage == page.CurrentPage) break;
                 pageNum = page.NextPage;
                 maxPage = page.MaxPage;
+
+                AddStatus($"Sleep {10}s");
+                await Task.Delay(10 * 1000);
+            }
+        }
+
+        private async Task SetNewCookie()
+        {
+            this.refreshed = false;
+            this.webBrowser.Load(pageUrl);
+
+            while (!this.refreshed)
+            {
+                await Task.Delay(100);
             }
         }
 
@@ -174,12 +181,7 @@ namespace PatentFormVer
 
         private static async Task<PageInfo> ParsePageAsync(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
         {
-            var typeStr
-                = type == SourceType.DesignGrant ? "pdg"
-                : type == SourceType.InventGrant ? "pig"
-                : type == SourceType.InventPublish ? "pip"
-                : type == SourceType.UtilityGrant ? "pug"
-                : throw new NotSupportedException("unknown type");
+            var typeStr = GetTypeString(type);
             var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
                 new Uri("http://epub.sipo.gov.cn/patentoutline.action"),
                 HttpVerb.Post,
@@ -219,6 +221,15 @@ namespace PatentFormVer
                 CurrentPage = curNumber,
                 Raw = homePage.Html.OuterHtml.Trim(),
             };
+        }
+
+        private static string GetTypeString(SourceType type)
+        {
+            return type == SourceType.DesignGrant ? "pdg"
+                : type == SourceType.InventGrant ? "pig"
+                : type == SourceType.InventPublish ? "pip"
+                : type == SourceType.UtilityGrant ? "pug"
+                : throw new NotSupportedException("unknown type");
         }
 
         private static CrudeInfo ParseItem(HtmlAgilityPack.HtmlNode cp)
@@ -275,7 +286,11 @@ namespace PatentFormVer
                     }
                 }
 
-                if (i % 10 == 0) await Task.Delay(1000);
+                if (i % 10 == 0)
+                {
+                    AddStatus($"Sleep {1}s");
+                    await Task.Delay(1000);
+                }
             }
         }
     }
