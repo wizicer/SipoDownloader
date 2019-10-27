@@ -34,18 +34,23 @@ namespace Patent
                 var docDetails = new HtmlDocument();
                 docDetails.LoadHtml(info.Details);
                 var lis = docDetails.DocumentNode.CssSelect("li");
-                var details = lis
-                    .Select(li =>
+                var details = new List<DetailInfo>();
+                foreach (var li in lis)
+                {
+                    if (string.IsNullOrWhiteSpace(li.InnerText)) continue;
+                    var text = li.ChildNodes.First().InnerText;
+                    text = HtmlEntity.DeEntitize(text);
+                    var d = text.Split(
+                        new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
+                    if (d.Length == 1)
                     {
-                        if (string.IsNullOrWhiteSpace(li.InnerText)) return null;
-                        var text = li.ChildNodes.First().InnerText;
-                        text = HtmlEntity.DeEntitize(text);
-                        var d = text.Split(
-                            new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
-                        return new DetailInfo { Name = d[0].Trim(), Content = d[1].Trim() };
-                    })
-                    .Where(_ => _ != null)
-                    .ToArray();
+                        details.Last().Content += d[0].Trim();
+                    }
+                    else
+                    {
+                        details.Add(new DetailInfo { Name = d[0].Trim(), Content = d[1].Trim() });
+                    }
+                }
 
                 var docDesc = new HtmlDocument();
                 docDesc.LoadHtml(info.Description);
@@ -76,7 +81,7 @@ namespace Patent
                     Description = desc,
                     LeadingDescription = leadingDesc,
                     Id = info.Id,
-                    Details = details,
+                    Details = details.ToArray(),
                     Image = info.Image,
                     Links = links,
                     QrImage = info.QrImage,
