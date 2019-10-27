@@ -312,8 +312,8 @@ namespace PatentFormVer
                             await wc.DownloadFileTaskAsync(pam.FileLink, filePath);
                         }
 
-                        AddStatus($"Sleep {5}s");
-                        await Task.Delay(5000);
+                        AddStatus($"Sleep {20}s");
+                        await Task.Delay(20000);
                     }
 
 
