@@ -265,6 +265,7 @@ namespace PatentFormVer
         private async void btnProcess_ClickAsync(object sender, EventArgs e)
         {
             var burl = "http://epub.sipo.gov.cn/";
+            var rePam = new Regex(@"javascript\:pam3\('(?<type>[piudg]{3})','(?<id>.+)','(?<number>\d?)'\);");
             var dirs = Directory.GetDirectories(basePath);
             for (var i = 0; i < dirs.Length; i++)
             {
@@ -274,16 +275,48 @@ namespace PatentFormVer
                 var info = JsonConvert.DeserializeObject<CrudeInfo>(File.ReadAllText(rawJsonPath));
                 var ginfo = RawWork.GetGrantInfo(info);
 
-                var imagePath = Path.Combine(dir, "image.jpg");
-                if (!File.Exists(imagePath))
                 {
-                    AddStatus($"work on {i + 1}/{dirs.Length}");
-                    var url = burl + info.Image;
-                    url = Regex.Replace(url, "_thumb.jpg$", ".jpg");
-                    using (var wc = new TimeoutWebClient(10000))
+                    var imagePath = Path.Combine(dir, "image.jpg");
+                    if (!File.Exists(imagePath))
                     {
-                        await wc.DownloadFileTaskAsync(url, imagePath);
+                        AddStatus($"work on {i + 1}/{dirs.Length} image");
+                        var url = burl + info.Image;
+                        url = Regex.Replace(url, "_thumb.jpg$", ".jpg");
+                        using (var wc = new TimeoutWebClient(10000))
+                        {
+                            await wc.DownloadFileTaskAsync(url, imagePath);
+                        }
                     }
+                }
+
+                foreach (var link in ginfo.Links)
+                {
+                    var filePath = Path.Combine(dir, $"{link.Key}.pdf");
+                    if (File.Exists(filePath)) continue;
+                    var match = rePam.Match(link.Value);
+                    if (match.Success)
+                    {
+                        AddStatus($"work on {i + 1}/{dirs.Length} {link.Key}");
+
+                        var type = match.Groups["type"].Value;
+                        var id = match.Groups["id"].Value;
+                        var number = match.Groups["number"].Value;
+
+                        await SetNewCookie();
+                        var pam = await ParsePamAsync(this.scrapeBrowser, type, id, number);
+                        var pamFilePath = Path.Combine(dir, $"{link.Key}.json");
+                        File.WriteAllText(pamFilePath, JsonConvert.SerializeObject(pam));
+
+                        using (var wc = new TimeoutWebClient(10000))
+                        {
+                            await wc.DownloadFileTaskAsync(pam.FileLink, filePath);
+                        }
+
+                        AddStatus($"Sleep {5}s");
+                        await Task.Delay(5000);
+                    }
+
+
                 }
 
                 if (i % 10 == 0)
@@ -292,6 +325,26 @@ namespace PatentFormVer
                     await Task.Delay(1000);
                 }
             }
+        }
+
+        private static async Task<PamInfo> ParsePamAsync(ScrapingBrowser browser, string type, string id, string number)
+        {
+            var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
+                new Uri("http://epub.sipo.gov.cn/pam.action"),
+                HttpVerb.Post,
+                $"strSources={type}&strWhere=PN%3D%27{id}%27&recordCursor={number}&strLicenseCode="));
+            var link = homePage.Html.CssSelect("div.main dl.gbgw_lfl dd ul li a.right")
+                .FirstOrDefault()?.GetAttributeValue("href");
+            var box = homePage.Html.CssSelect("iframe.pam_box")
+                .FirstOrDefault()?.GetAttributeValue("src");
+
+            return new PamInfo
+            {
+                FileLink = link,
+                PreviewLink = box,
+                Raw = homePage.Html.OuterHtml,
+            };
+
         }
     }
 
@@ -305,6 +358,12 @@ namespace PatentFormVer
         UtilityGrant,
         // pdg: 外观设计
         DesignGrant,
+    }
+    public class PamInfo
+    {
+        public string FileLink { get; set; }
+        public string PreviewLink { get; set; }
+        public string Raw { get; set; }
     }
     public class PageInfo
     {
