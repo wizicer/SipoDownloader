@@ -39,32 +39,16 @@ namespace PatentFormVer
 
         private async void WebBrowser_FrameLoadEnd(object sender, CefSharp.FrameLoadEndEventArgs e)
         {
-            //Cef.GetGlobalCookieManager().
-            //var c = new CookieMonster();
-            //await this.webBrowser.GetCookieManager().VisitUrlCookiesAsync("http://epub.sipo.gov.cn/gjcx.jsp", true, c);
             var result = await this.webBrowser.GetCookieManager().VisitUrlCookiesAsync("http://epub.sipo.gov.cn/gjcx.jsp", true);
             if (result.Any(_ => _.Name == "JSESSIONID"))
             {
                 var browser = new ScrapingBrowser();
-                //browser.Encoding = Encoding.GetEncoding(932);
                 browser.Encoding = Encoding.UTF8;
 
                 foreach (var cookie in result)
                 {
                     browser.SetCookies(new Uri("http://epub.sipo.gov.cn"), $@"{cookie.Name}={cookie.Value}; expires={cookie.Expires}; path=/");
-                    //browser.SetCookies(new Uri(cookie.Domain), $"{cookie.Name}={cookie.Value}");
                 }
-
-                //var d = browser.GetCookie(new Uri("http://epub.sipo.gov.cn"), "JSESSIONID");
-
-                //var homePage = browser.NavigateToPage(new Uri("http://epub.sipo.gov.cn/gjcx.jsp"));
-
-                //var form = homePage.FindFormById("pato");
-                //form["strWhere"] = "(TI='区块链')";
-                //form["pageSize"] = "10";
-                //form["pageNow"] = "1";
-                //var resultsPage = form.Submit();
-                //var cps = resultsPage.Html.CssSelect("div.cp_box").ToArray();
 
                 ParsePage(browser, SourceType.InventGrant, "区块链", 1);
             }
@@ -86,7 +70,6 @@ namespace PatentFormVer
                 $"&pageSize=10&pageNow={pageNumber}");
             var cps = homePage.Html.CssSelect("div.cp_box").ToArray();
             var list = cps.Select(_ => ParseItem(_)).ToArray();
-            //var curPage = homePage.Html.CssSelect("div.next a.hover").FirstOrDefault()?.InnerText;
             var pages = homePage.Html.CssSelect("div.next a").ToArray();
             var regPage = new Regex(@"\((?<g>[0-9]+)\)");
             var maxNumber = 0;
