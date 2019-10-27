@@ -23,14 +23,38 @@ namespace PatentFormVer
         private readonly ChromiumWebBrowser webBrowser;
         private readonly string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "works");
 
+        private ScrapingBrowser scrapeBrowser = new ScrapingBrowser();
+        private bool refreshed = false;
+        private bool searching = false;
+        private readonly string pageUrl = "http://epub.sipo.gov.cn/gjcx.jsp";
+
         public MainForm()
         {
             InitializeComponent();
-            webBrowser = new ChromiumWebBrowser("http://epub.sipo.gov.cn/gjcx.jsp");
+            webBrowser = new ChromiumWebBrowser(pageUrl);
             webBrowser.FrameLoadEnd += WebBrowser_FrameLoadEnd;
             webBrowser.LoadingStateChanged += WebBrowser_LoadingStateChanged;
             webBrowser.Dock = DockStyle.Fill;
             this.splitContainer1.Panel1.Controls.Add(webBrowser);
+        }
+
+        private void MainForm_Load(object sender, EventArgs e)
+        {
+            this.DisableSearch();
+        }
+
+        private void DisableSearch()
+        {
+            EnableSearch(false);
+        }
+
+        private void EnableSearch(bool enable = true)
+        {
+            this.Invoke((Action)(() =>
+            {
+                this.txtKeywords.Enabled = enable;
+                this.btnSearch.Enabled = enable;
+            }));
         }
 
         private void WebBrowser_LoadingStateChanged(object sender, CefSharp.LoadingStateChangedEventArgs e)
@@ -42,38 +66,64 @@ namespace PatentFormVer
 
         private async void WebBrowser_FrameLoadEnd(object sender, CefSharp.FrameLoadEndEventArgs e)
         {
+            await SetCookie();
+        }
+
+        private async Task SetCookie()
+        {
             var result = await this.webBrowser.GetCookieManager().VisitUrlCookiesAsync("http://epub.sipo.gov.cn/gjcx.jsp", true);
             if (result.Any(_ => _.Name == "JSESSIONID"))
             {
-                var browser = new ScrapingBrowser();
-                browser.Encoding = Encoding.UTF8;
+                scrapeBrowser.Encoding = Encoding.UTF8;
 
                 foreach (var cookie in result)
                 {
-                    browser.SetCookies(new Uri("http://epub.sipo.gov.cn"), $@"{cookie.Name}={cookie.Value}; expires={cookie.Expires}; path=/");
+                    scrapeBrowser.SetCookies(new Uri("http://epub.sipo.gov.cn"), $@"{cookie.Name}={cookie.Value}; expires={cookie.Expires}; path=/");
                 }
 
-                var keywords = "区块链";
-                await Search(browser, keywords);
+                this.refreshed = true;
+                if (!this.searching)
+                {
+                    EnableSearch();
+                }
             }
         }
 
-        private async Task Search(ScrapingBrowser browser, string keywords)
+        private async void btnSearch_Click(object sender, EventArgs e)
+        {
+            this.searching = true;
+            DisableSearch();
+            await Search(scrapeBrowser, txtKeywords.Text, SourceType.InventPublish);
+            this.searching = false;
+            EnableSearch();
+        }
+
+        private async Task Search(ScrapingBrowser browser, string keywords, SourceType type)
         {
             var pageNum = 1;
             var items = new List<CrudeInfo>();
+            var maxPage = -1;
             while (true)
             {
-                AddStatus($"Working on page {pageNum}");
-                var page = ParsePage(browser, SourceType.InventGrant, keywords, pageNum);
+                AddStatus($"Working on page {pageNum}/{maxPage}");
+                var page = await ParsePageAsync(browser, type, keywords, pageNum);
                 items.AddRange(page.Items);
                 SaveEachItem(page.Items);
-                SaveSearch(keywords, items);
+                SaveSearch(keywords, type, items);
+                AddStatus($"Saved items from page {pageNum}");
+
+                this.refreshed = false;
+                this.webBrowser.Load(pageUrl);
 
                 await Task.Delay(10000);
+                while (!this.refreshed)
+                {
+                    await Task.Delay(100);
+                }
 
                 if (page.MaxPage == page.CurrentPage) break;
                 pageNum = page.NextPage;
+                maxPage = page.MaxPage;
             }
         }
 
@@ -88,9 +138,9 @@ namespace PatentFormVer
             }
         }
 
-        private void SaveSearch(string keywords, IEnumerable<CrudeInfo> items)
+        private void SaveSearch(string keywords, SourceType type, IEnumerable<CrudeInfo> items)
         {
-            var filepath = Path.Combine(basePath, $@"{keywords}.json");
+            var filepath = Path.Combine(basePath, $@"{keywords}-{type}.json");
             EnsureDirectoryExist(filepath);
             var json = JsonConvert.SerializeObject(items);
             File.WriteAllText(filepath, json);
@@ -113,7 +163,7 @@ namespace PatentFormVer
             }));
         }
 
-        private static PageInfo ParsePage(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
+        private static async Task<PageInfo> ParsePageAsync(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
         {
             var typeStr
                 = type == SourceType.DesignGrant ? "pdg"
@@ -121,12 +171,12 @@ namespace PatentFormVer
                 : type == SourceType.InventPublish ? "pip"
                 : type == SourceType.UtilityGrant ? "pug"
                 : throw new NotSupportedException("unknown type");
-            var homePage = browser.NavigateToPage(
+            var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
                 new Uri("http://epub.sipo.gov.cn/patentoutline.action"),
                 HttpVerb.Post,
                 $"showType=1&strSources={typeStr}&strWhere=%28TI%3D%27{keywords}%27%29" +
                 $"&numSortMethod=0&strLicenseCode=&numIp=&numIpc=&numIg=&numIgc=&numIgd=&numUg=&numUgc=&numUgd=&numDg=0&numDgc=" +
-                $"&pageSize=10&pageNow={pageNumber}");
+                $"&pageSize=10&pageNow={pageNumber}"));
             var cps = homePage.Html.CssSelect("div.cp_box").ToArray();
             var list = cps.Select(_ => ParseItem(_)).ToArray();
             var pages = homePage.Html.CssSelect("div.next a").ToArray();
@@ -188,7 +238,7 @@ namespace PatentFormVer
                 Description = desc.Trim(),
                 Links = links.Trim(),
                 QrImage = qr.Trim(),
-                Raw = cp.OuterHtml,
+                Raw = cp.OuterHtml.Trim(),
             };
         }
     }
