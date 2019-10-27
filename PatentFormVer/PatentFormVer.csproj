@@ -88,15 +88,24 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Entity\GrantDetailInfo.cs" />
+    <Compile Include="Entity\GrantItemInfo.cs" />
+    <Compile Include="Entity\GrantListPageInfo.cs" />
+    <Compile Include="Entity\PamPageInfo.cs" />
+    <Compile Include="Entity\RawGrantItemInfo.cs" />
+    <Compile Include="Entity\Enums.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
     <Compile Include="MainForm.Designer.cs">
       <DependentUpon>MainForm.cs</DependentUpon>
     </Compile>
-    <Compile Include="RawWork.cs" />
+    <Compile Include="Extensions.cs" />
     <Compile Include="Program.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="TimeoutWebClient.cs">
+      <SubType>Component</SubType>
+    </Compile>
     <EmbeddedResource Include="MainForm.resx">
       <DependentUpon>MainForm.cs</DependentUpon>
     </EmbeddedResource>

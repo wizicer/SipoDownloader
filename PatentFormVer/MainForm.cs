@@ -1,6 +1,7 @@
 ﻿using CefSharp;
 using CefSharp.WinForms;
 using Newtonsoft.Json;
+using PatentFormVer.Entity;
 using ScrapySharp.Extensions;
 using ScrapySharp.Network;
 using System;
@@ -101,7 +102,7 @@ namespace PatentFormVer
         private async Task Search(ScrapingBrowser browser, string keywords, SourceType type)
         {
             var pageNum = 1;
-            var items = new List<CrudeInfo>();
+            var items = new List<RawGrantItemInfo>();
             var maxPage = -1;
             while (true)
             {
@@ -134,7 +135,7 @@ namespace PatentFormVer
             }
         }
 
-        private void SaveEachItem(IEnumerable<CrudeInfo> items)
+        private void SaveEachItem(IEnumerable<RawGrantItemInfo> items)
         {
             foreach (var item in items)
             {
@@ -148,13 +149,13 @@ namespace PatentFormVer
                 {
                     var filepath = Path.Combine(basePath, $@"{item.Id}/info.json");
                     EnsureDirectoryExist(filepath);
-                    var json = JsonConvert.SerializeObject(RawWork.GetGrantInfo(item));
+                    var json = JsonConvert.SerializeObject(item.ToGrantInfo());
                     File.WriteAllText(filepath, json);
                 }
             }
         }
 
-        private void SaveSearch(string keywords, SourceType type, IEnumerable<CrudeInfo> items)
+        private void SaveSearch(string keywords, SourceType type, IEnumerable<RawGrantItemInfo> items)
         {
             var filepath = Path.Combine(basePath, $@"{keywords}-{type}.json");
             EnsureDirectoryExist(filepath);
@@ -179,101 +180,29 @@ namespace PatentFormVer
             }));
         }
 
-        private static async Task<PageInfo> ParsePageAsync(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
+        private static async Task<GrantListPageInfo> ParsePageAsync(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
         {
-            var typeStr = GetTypeString(type);
+            var typeStr = type.ToTypeString();
             var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
                 new Uri("http://epub.sipo.gov.cn/patentoutline.action"),
                 HttpVerb.Post,
                 $"showType=1&strSources={typeStr}&strWhere=%28TI%3D%27{keywords}%27%29" +
                 $"&numSortMethod=0&strLicenseCode=&numIp=&numIpc=&numIg=&numIgc=&numIgd=&numUg=&numUgc=&numUgd=&numDg=0&numDgc=" +
                 $"&pageSize=10&pageNow={pageNumber}"));
-            var cps = homePage.Html.CssSelect("div.cp_box").ToArray();
-            var list = cps.Select(_ => ParseItem(_)).ToArray();
-            var pages = homePage.Html.CssSelect("div.next a").ToArray();
-            var regPage = new Regex(@"\((?<g>[0-9]+)\)");
-            var maxNumber = 0;
-            var nextNumber = 0;
-            var curNumber = 0;
-            foreach (var page in pages)
-            {
-                var href = page.GetAttributeValue("href");
-                var d = regPage.Match(href).Groups["g"].Value;
-                if (int.TryParse(d, out var number))
-                {
-                    if (number > maxNumber) maxNumber = number;
-                    if (page.InnerText == "&gt;")
-                    {
-                        nextNumber = number;
-                    }
-                    else if (page.GetClasses().Contains("hover"))
-                    {
-                        curNumber = number;
-                    }
-                }
-            }
-
-            return new PageInfo
-            {
-                Items = list,
-                NextPage = nextNumber,
-                MaxPage = maxNumber,
-                CurrentPage = curNumber,
-                Raw = homePage.Html.OuterHtml.Trim(),
-            };
-        }
-
-        private static string GetTypeString(SourceType type)
-        {
-            return type == SourceType.DesignGrant ? "pdg"
-                : type == SourceType.InventGrant ? "pig"
-                : type == SourceType.InventPublish ? "pip"
-                : type == SourceType.UtilityGrant ? "pug"
-                : throw new NotSupportedException("unknown type");
-        }
-
-        private static CrudeInfo ParseItem(HtmlAgilityPack.HtmlNode cp)
-        {
-            var imgElm = cp.CssSelect("div.cp_img img").FirstOrDefault();
-            var img = imgElm?.GetAttributeValue("src");
-            var headElm = cp.CssSelect("div.cp_linr h1").FirstOrDefault();
-            var head = headElm?.InnerText;
-            var detailElm = cp.CssSelect("div.cp_linr ul").FirstOrDefault();
-            var details = detailElm?.InnerHtml;
-            var descElm = cp.CssSelect("div.cp_linr div.cp_jsh").FirstOrDefault();
-            var desc = descElm?.InnerHtml;
-            var linksElm = cp.CssSelect("div.cp_linr p.cp_botsm").FirstOrDefault();
-            var links = linksElm?.InnerHtml;
-            var qrElm = cp.CssSelect("a.qrcode img").FirstOrDefault();
-            var qr = qrElm?.GetAttributeValue("src");
-            var idElm = cp.CssSelect("a.qrcode").FirstOrDefault();
-            var id = idElm?.GetAttributeValue("id");
-
-            return new CrudeInfo
-            {
-                Id = id.Trim(),
-                Image = img.Trim(),
-                Title = head.Trim(),
-                Details = details.Trim(),
-                Description = desc.Trim(),
-                Links = links.Trim(),
-                QrImage = qr.Trim(),
-                Raw = cp.OuterHtml.Trim(),
-            };
+            return homePage.Html.ToGrantListPageInfo();
         }
 
         private async void btnProcess_ClickAsync(object sender, EventArgs e)
         {
             var burl = "http://epub.sipo.gov.cn/";
-            var rePam = new Regex(@"javascript\:pam3\('(?<type>[piudg]{3})','(?<id>.+)','(?<number>\d?)'\);");
             var dirs = Directory.GetDirectories(basePath);
             for (var i = 0; i < dirs.Length; i++)
             {
                 var dir = dirs[i];
                 var rawJsonPath = Path.Combine(dir, "raw.json");
                 if (!File.Exists(rawJsonPath)) continue;
-                var info = JsonConvert.DeserializeObject<CrudeInfo>(File.ReadAllText(rawJsonPath));
-                var ginfo = RawWork.GetGrantInfo(info);
+                var info = JsonConvert.DeserializeObject<RawGrantItemInfo>(File.ReadAllText(rawJsonPath));
+                var ginfo = info.ToGrantInfo();
 
                 {
                     var imagePath = Path.Combine(dir, "image.jpg");
@@ -281,7 +210,6 @@ namespace PatentFormVer
                     {
                         AddStatus($"work on {i + 1}/{dirs.Length} image");
                         var url = burl + info.Image;
-                        url = Regex.Replace(url, "_thumb.jpg$", ".jpg");
                         using (var wc = new TimeoutWebClient(10000))
                         {
                             await wc.DownloadFileTaskAsync(url, imagePath);
@@ -291,32 +219,31 @@ namespace PatentFormVer
 
                 foreach (var link in ginfo.Links)
                 {
-                    var filePath = Path.Combine(dir, $"{link.Key}.pdf");
+                    var filePath = Path.Combine(dir, $"{link.Title}.pdf");
                     if (File.Exists(filePath)) continue;
-                    var match = rePam.Match(link.Value);
-                    if (match.Success)
+                    var jsonFilePath = Path.Combine(dir, $"{link.Title}.json");
+
+                    switch (link)
                     {
-                        AddStatus($"work on {i + 1}/{dirs.Length} {link.Key}");
+                        case GrantItemPamLink gipl:
+                            AddStatus($"work on {i + 1}/{dirs.Length} {link.Title}");
 
-                        var type = match.Groups["type"].Value;
-                        var id = match.Groups["id"].Value;
-                        var number = match.Groups["number"].Value;
+                            await SetNewCookie();
+                            var pam = await ParsePamAsync(this.scrapeBrowser, gipl.Type, gipl.Id, gipl.Index);
+                            File.WriteAllText(jsonFilePath, JsonConvert.SerializeObject(pam));
 
-                        await SetNewCookie();
-                        var pam = await ParsePamAsync(this.scrapeBrowser, type, id, number);
-                        var pamFilePath = Path.Combine(dir, $"{link.Key}.json");
-                        File.WriteAllText(pamFilePath, JsonConvert.SerializeObject(pam));
-
-                        using (var wc = new TimeoutWebClient(10000))
-                        {
-                            await wc.DownloadFileTaskAsync(pam.FileLink, filePath);
-                        }
-
-                        AddStatus($"Sleep {20}s");
-                        await Task.Delay(20000);
+                            using (var wc = new TimeoutWebClient(10000))
+                            {
+                                await wc.DownloadFileTaskAsync(pam.FileLink, filePath);
+                            }
+                            break;
+                        case GrantItemTxLink gitl:
+                        default:
+                            break;
                     }
 
-
+                    AddStatus($"Sleep {20}s");
+                    await Task.Delay(20000);
                 }
 
                 if (i % 10 == 0)
@@ -327,61 +254,13 @@ namespace PatentFormVer
             }
         }
 
-        private static async Task<PamInfo> ParsePamAsync(ScrapingBrowser browser, string type, string id, string number)
+        private static async Task<PamPageInfo> ParsePamAsync(ScrapingBrowser browser, string type, string id, string number)
         {
             var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
                 new Uri("http://epub.sipo.gov.cn/pam.action"),
                 HttpVerb.Post,
                 $"strSources={type}&strWhere=PN%3D%27{id}%27&recordCursor={number}&strLicenseCode="));
-            var link = homePage.Html.CssSelect("div.main dl.gbgw_lfl dd ul li a.right")
-                .FirstOrDefault()?.GetAttributeValue("href");
-            var box = homePage.Html.CssSelect("iframe.pam_box")
-                .FirstOrDefault()?.GetAttributeValue("src");
-
-            return new PamInfo
-            {
-                FileLink = link,
-                PreviewLink = box,
-                Raw = homePage.Html.OuterHtml,
-            };
-
+            return homePage.Html.ToPamPageInfo();
         }
-    }
-
-    public enum SourceType
-    {
-        // pip: 发明公布
-        InventPublish,
-        // pig: 发明授权
-        InventGrant,
-        // pug: 实用新型
-        UtilityGrant,
-        // pdg: 外观设计
-        DesignGrant,
-    }
-    public class PamInfo
-    {
-        public string FileLink { get; set; }
-        public string PreviewLink { get; set; }
-        public string Raw { get; set; }
-    }
-    public class PageInfo
-    {
-        public CrudeInfo[] Items { get; set; }
-        public int CurrentPage { get; set; }
-        public int NextPage { get; set; }
-        public int MaxPage { get; set; }
-        public string Raw { get; set; }
-    }
-    public class CrudeInfo
-    {
-        public string Id { get; set; }
-        public string Image { get; set; }
-        public string Title { get; set; }
-        public string Details { get; set; }
-        public string Description { get; set; }
-        public string Links { get; set; }
-        public string QrImage { get; set; }
-        public string Raw { get; set; }
     }
 }
