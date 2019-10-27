@@ -1,12 +1,16 @@
-﻿using AngleSharp;
+﻿using HtmlAgilityPack;
+using Newtonsoft.Json;
 using ScrapySharp.Extensions;
 using ScrapySharp.Html;
 using ScrapySharp.Network;
 using System;
+using System.Collections.Generic;
 using System.Collections.Specialized;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 
 namespace Patent
@@ -15,43 +19,70 @@ namespace Patent
     {
         static async Task Main(string[] args)
         {
-            //await Test1();
-
-            var browser = new ScrapingBrowser();
-
-            //set UseDefaultCookiesParser as false if a website returns invalid cookies format
-            //browser.UseDefaultCookiesParser = false;
-
-            var homePage = browser.NavigateToPage(new Uri("http://epub.sipo.gov.cn/gjcx.jsp"));
-
-            var form = homePage.FindFormById("pato");
-            form["ti"] = "chain";
-            var resultsPage = form.Submit();
-
-            var cps = resultsPage.Html.CssSelect("div.cp_box").ToArray();
-            foreach (var cp in cps)
+            var basePath = @"C:\Work\1-Blockchain\Library\Crawler\PatentFormVer\bin\x86\Debug\works\";
+            var regTitle = new Regex(@"\[(?<type>.*)\]&nbsp;(?<title>.*)");
+            foreach (var dir in Directory.GetDirectories(basePath))
             {
-                var imgElm = cp.CssSelect("div.cp_img img").FirstOrDefault();
-                var img = imgElm.GetAttributeValue("src");
-            }
+                var rawJsonPath = Path.Combine(dir, "raw.json");
+                if (!File.Exists(rawJsonPath)) continue;
+                var info = JsonConvert.DeserializeObject<CrudeInfo>(await File.ReadAllTextAsync(rawJsonPath));
 
-            //var blogPage = resultsPage.FindLinks(By.Text("romcyber blog | Just another WordPress site")).Single().Click();
-        }
+                var match = regTitle.Match(info.Title);
+                var title = match.Groups["title"].Value;
+                var type = match.Groups["type"].Value;
 
-        private static async Task Test1()
-        {
-            //var text = await GetText("区块链");
-            var text = await GetText("chain");
+                var docDetails = new HtmlDocument();
+                docDetails.LoadHtml(info.Details);
+                var lis = docDetails.DocumentNode.CssSelect("li");
+                var details = lis
+                    .Select(li =>
+                    {
+                        if (string.IsNullOrWhiteSpace(li.InnerText)) return null;
+                        var text = li.ChildNodes.First().InnerText;
+                        text = HtmlEntity.DeEntitize(text);
+                        var d = text.Split(
+                            new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
+                        return new DetailInfo { Name = d[0].Trim(), Content = d[1].Trim() };
+                    })
+                    .Where(_ => _ != null)
+                    .ToArray();
 
-            var config = Configuration.Default.WithDefaultLoader();
-            var context = BrowsingContext.New(config);
-            var document = await context.OpenAsync(req => req.Content(text));
+                var docDesc = new HtmlDocument();
+                docDesc.LoadHtml(info.Description);
+                var desc = docDesc.DocumentNode.InnerText;
+                var leadingDesc = "";
+                if (desc.EndsWith("全部"))
+                {
+                    desc = desc.Substring(0, desc.Length - 2).Trim();
+                    desc = HtmlEntity.DeEntitize(desc);
+                    var d = desc.Split(
+                        new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
+                    leadingDesc = d[0].Trim();
+                    desc = d[1].Trim();
+                }
+                else
+                {
+                }
 
-            var cells = document.QuerySelectorAll(".cp_box");
-            var titles = cells.Select(m => m.TextContent);
-            foreach (var cell in cells)
-            {
-                var img = cell.QuerySelector(".cp_img img").GetAttribute("src");
+                var docLinks = new HtmlDocument();
+                docLinks.LoadHtml(info.Links);
+                var links = docLinks.DocumentNode.CssSelect("span a")
+                    .Select(link => new { href = link.GetAttributeValue("href"), text = link.InnerText })
+                    .ToDictionary(_ => _.text, _ => _.href)
+                    .ToArray();
+
+                var newinfo = new GrantInfo
+                {
+                    Description = desc,
+                    LeadingDescription = leadingDesc,
+                    Id = info.Id,
+                    Details = details,
+                    Image = info.Image,
+                    Links = links,
+                    QrImage = info.QrImage,
+                    Title = title,
+                    Type = type,
+                };
             }
         }
 
@@ -128,6 +159,36 @@ Cookie: cT6iSq1TseR480S=OER1NSkqjiyW5K5WBbczZzDMWUeJ8avQZh96Y81QPG11ApYjTCQ.Ns_x
             w.Timeout = timeout;
             return w;
         }
+    }
+    public class GrantInfo
+    {
+        public string Id { get; set; }
+        public string Image { get; set; }
+        public string Type { get; set; }
+        public string Title { get; set; }
+        public DetailInfo[] Details { get; set; }
+        public string LeadingDescription { get; set; }
+        public string Description { get; set; }
+        public KeyValuePair<string, string>[] Links { get; set; }
+        public string QrImage { get; set; }
+    }
+
+    [System.Diagnostics.DebuggerDisplay("{Name}: {Content}")]
+    public class DetailInfo
+    {
+        public string Name { get; set; }
+        public string Content { get; set; }
+    }
+    public class CrudeInfo
+    {
+        public string Id { get; set; }
+        public string Image { get; set; }
+        public string Title { get; set; }
+        public string Details { get; set; }
+        public string Description { get; set; }
+        public string Links { get; set; }
+        public string QrImage { get; set; }
+        public string Raw { get; set; }
     }
 
 }
