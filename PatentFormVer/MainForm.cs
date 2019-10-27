@@ -131,10 +131,19 @@ namespace PatentFormVer
         {
             foreach (var item in items)
             {
-                var filepath = Path.Combine(basePath, $@"{item.Id}/raw.json");
-                EnsureDirectoryExist(filepath);
-                var json = JsonConvert.SerializeObject(item);
-                File.WriteAllText(filepath, json);
+                {
+                    var filepath = Path.Combine(basePath, $@"{item.Id}/raw.json");
+                    EnsureDirectoryExist(filepath);
+                    var json = JsonConvert.SerializeObject(item);
+                    File.WriteAllText(filepath, json);
+                }
+
+                {
+                    var filepath = Path.Combine(basePath, $@"{item.Id}/info.json");
+                    EnsureDirectoryExist(filepath);
+                    var json = JsonConvert.SerializeObject(RawWork.GetGrantInfo(item));
+                    File.WriteAllText(filepath, json);
+                }
             }
         }
 
@@ -240,6 +249,34 @@ namespace PatentFormVer
                 QrImage = qr.Trim(),
                 Raw = cp.OuterHtml.Trim(),
             };
+        }
+
+        private async void btnProcess_ClickAsync(object sender, EventArgs e)
+        {
+            var burl = "http://epub.sipo.gov.cn/";
+            var dirs = Directory.GetDirectories(basePath);
+            for (var i = 0; i < dirs.Length; i++)
+            {
+                var dir = dirs[i];
+                var rawJsonPath = Path.Combine(dir, "raw.json");
+                if (!File.Exists(rawJsonPath)) continue;
+                var info = JsonConvert.DeserializeObject<CrudeInfo>(File.ReadAllText(rawJsonPath));
+                var ginfo = RawWork.GetGrantInfo(info);
+
+                var imagePath = Path.Combine(dir, "image.jpg");
+                if (!File.Exists(imagePath))
+                {
+                    AddStatus($"work on {i + 1}/{dirs.Length}");
+                    var url = burl + info.Image;
+                    url = Regex.Replace(url, "_thumb.jpg$", ".jpg");
+                    using (var wc = new TimeoutWebClient(10000))
+                    {
+                        await wc.DownloadFileTaskAsync(url, imagePath);
+                    }
+                }
+
+                if (i % 10 == 0) await Task.Delay(1000);
+            }
         }
     }
 

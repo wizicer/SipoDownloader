@@ -33,6 +33,7 @@
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
             this.btnSearch = new System.Windows.Forms.Button();
             this.txtKeywords = new System.Windows.Forms.TextBox();
+            this.btnProcess = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -76,6 +77,7 @@
             // splitContainer2.Panel1
             // 
             this.splitContainer2.Panel1.Controls.Add(this.txtKeywords);
+            this.splitContainer2.Panel1.Controls.Add(this.btnProcess);
             this.splitContainer2.Panel1.Controls.Add(this.btnSearch);
             // 
             // splitContainer2.Panel2
@@ -102,6 +104,16 @@
             this.txtKeywords.Size = new System.Drawing.Size(100, 20);
             this.txtKeywords.TabIndex = 1;
             this.txtKeywords.Text = "区块链";
+            // 
+            // btnProcess
+            // 
+            this.btnProcess.Location = new System.Drawing.Point(12, 107);
+            this.btnProcess.Name = "btnProcess";
+            this.btnProcess.Size = new System.Drawing.Size(75, 23);
+            this.btnProcess.TabIndex = 0;
+            this.btnProcess.Text = "Process";
+            this.btnProcess.UseVisualStyleBackColor = true;
+            this.btnProcess.Click += new System.EventHandler(this.btnProcess_ClickAsync);
             // 
             // MainForm
             // 
@@ -132,6 +144,7 @@
         private System.Windows.Forms.SplitContainer splitContainer2;
         private System.Windows.Forms.TextBox txtKeywords;
         private System.Windows.Forms.Button btnSearch;
+        private System.Windows.Forms.Button btnProcess;
     }
 }
 
