@@ -1,5 +1,6 @@
 ﻿using CefSharp;
 using CefSharp.WinForms;
+using Newtonsoft.Json;
 using ScrapySharp.Extensions;
 using ScrapySharp.Network;
 using System;
@@ -7,6 +8,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
 using System.Drawing;
+using System.IO;
 using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
@@ -19,6 +21,7 @@ namespace PatentFormVer
     public partial class MainForm : Form
     {
         private readonly ChromiumWebBrowser webBrowser;
+        private readonly string basePath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "works");
 
         public MainForm()
         {
@@ -27,7 +30,7 @@ namespace PatentFormVer
             webBrowser.FrameLoadEnd += WebBrowser_FrameLoadEnd;
             webBrowser.LoadingStateChanged += WebBrowser_LoadingStateChanged;
             webBrowser.Dock = DockStyle.Fill;
-            this.Controls.Add(webBrowser);
+            this.splitContainer1.Panel1.Controls.Add(webBrowser);
         }
 
         private void WebBrowser_LoadingStateChanged(object sender, CefSharp.LoadingStateChangedEventArgs e)
@@ -50,8 +53,64 @@ namespace PatentFormVer
                     browser.SetCookies(new Uri("http://epub.sipo.gov.cn"), $@"{cookie.Name}={cookie.Value}; expires={cookie.Expires}; path=/");
                 }
 
-                ParsePage(browser, SourceType.InventGrant, "区块链", 1);
+                var keywords = "区块链";
+                await Search(browser, keywords);
             }
+        }
+
+        private async Task Search(ScrapingBrowser browser, string keywords)
+        {
+            var pageNum = 1;
+            var items = new List<CrudeInfo>();
+            while (true)
+            {
+                AddStatus($"Working on page {pageNum}");
+                var page = ParsePage(browser, SourceType.InventGrant, keywords, pageNum);
+                items.AddRange(page.Items);
+                SaveEachItem(page.Items);
+                SaveSearch(keywords, items);
+
+                await Task.Delay(10000);
+
+                if (page.MaxPage == page.CurrentPage) break;
+                pageNum = page.NextPage;
+            }
+        }
+
+        private void SaveEachItem(IEnumerable<CrudeInfo> items)
+        {
+            foreach (var item in items)
+            {
+                var filepath = Path.Combine(basePath, $@"{item.Id}/raw.json");
+                EnsureDirectoryExist(filepath);
+                var json = JsonConvert.SerializeObject(item);
+                File.WriteAllText(filepath, json);
+            }
+        }
+
+        private void SaveSearch(string keywords, IEnumerable<CrudeInfo> items)
+        {
+            var filepath = Path.Combine(basePath, $@"{keywords}.json");
+            EnsureDirectoryExist(filepath);
+            var json = JsonConvert.SerializeObject(items);
+            File.WriteAllText(filepath, json);
+        }
+
+        private void EnsureDirectoryExist(string path)
+        {
+            var dir = Path.GetDirectoryName(path);
+            if (Directory.Exists(dir)) return;
+            Directory.CreateDirectory(dir);
+        }
+
+        private void AddStatus(string msg)
+        {
+            this.txtStatus.Invoke((Action)(() =>
+            {
+                var newmsg = msg + Environment.NewLine + this.txtStatus.Text;
+                newmsg = newmsg.Substring(0, newmsg.Length > 5000 ? 5000 : newmsg.Length);
+                this.txtStatus.Text = newmsg;
+            }));
         }
 
         private static PageInfo ParsePage(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
@@ -129,7 +188,7 @@ namespace PatentFormVer
                 Description = desc.Trim(),
                 Links = links.Trim(),
                 QrImage = qr.Trim(),
-                Raw = cp.OuterHtml.Trim(),
+                Raw = cp.OuterHtml,
             };
         }
     }
