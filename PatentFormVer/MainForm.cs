@@ -226,7 +226,7 @@ namespace PatentFormVer
                     switch (link)
                     {
                         case GrantItemPamLink gipl:
-                            AddStatus($"work on {i + 1}/{dirs.Length} {link.Title}");
+                            AddStatus($"work on {i + 1}/{dirs.Length} {link.Title} {gipl.Id}");
 
                             await SetNewCookie();
                             var pam = await ParsePamAsync(this.scrapeBrowser, gipl.Type, gipl.Id, gipl.Index);
@@ -236,14 +236,14 @@ namespace PatentFormVer
                             {
                                 await wc.DownloadFileTaskAsync(pam.FileLink, filePath);
                             }
+
+                            AddStatus($"Sleep {20}s");
+                            await Task.Delay(20000);
                             break;
                         case GrantItemTxLink gitl:
                         default:
                             break;
                     }
-
-                    AddStatus($"Sleep {20}s");
-                    await Task.Delay(20000);
                 }
 
                 if (i % 10 == 0)

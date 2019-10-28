@@ -20,9 +20,9 @@
         public static GrantItemInfo ToGrantInfo(this RawGrantItemInfo info)
         {
             var regTitle = new Regex(@"\[(?<type>.*)\]&nbsp;(?<title>.*)");
-            var match = regTitle.Match(info.Title);
-            var title = match.Groups["title"].Value;
-            var type = match.Groups["type"].Value;
+            var titleMatch = regTitle.Match(info.Title);
+            var title = titleMatch.Groups["title"].Value;
+            var type = titleMatch.Groups["type"].Value;
 
             var docDetails = new HtmlDocument();
             docDetails.LoadHtml(info.Details);
@@ -63,7 +63,7 @@
             }
 
             var rePam = new Regex(@"javascript\:pam3\('(?<type>[piudg]{3})','(?<id>.+)','(?<index>\d?)'\);");
-            var reTx = new Regex(@"javascript\:sw_xx\('(?<number>[0-9]*)'\);");
+            var reTx = new Regex(@"javascript\:sw_xx\('(?<number>.*)'\);");
             var docLinks = new HtmlDocument();
             docLinks.LoadHtml(info.Links);
             var links = docLinks.DocumentNode.CssSelect("span a")
@@ -73,9 +73,9 @@
                     var pamMatch = rePam.Match(link.href);
                     if (pamMatch.Success)
                     {
-                        var pamType = match.Groups["type"].Value;
-                        var pamId = match.Groups["id"].Value;
-                        var pamIndex = match.Groups["index"].Value;
+                        var pamType = pamMatch.Groups["type"].Value;
+                        var pamId = pamMatch.Groups["id"].Value;
+                        var pamIndex = pamMatch.Groups["index"].Value;
                         return (GrantItemLinkBase)new GrantItemPamLink
                         {
                             Title = link.text,
@@ -88,7 +88,7 @@
                     var txMatch = reTx.Match(link.href);
                     if (txMatch.Success)
                     {
-                        var txNumber = match.Groups["number"].Value;
+                        var txNumber = txMatch.Groups["number"].Value;
                         return new GrantItemTxLink
                         {
                             Title = link.text,
