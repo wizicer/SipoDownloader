@@ -183,12 +183,12 @@ namespace PatentFormVer
         private static async Task<GrantListPageInfo> ParsePageAsync(ScrapingBrowser browser, SourceType type, string keywords, int pageNumber)
         {
             var typeStr = type.ToTypeString();
-            var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
+            var homePage = await browser.NavigateToPageAsync(
                 new Uri("http://epub.sipo.gov.cn/patentoutline.action"),
                 HttpVerb.Post,
                 $"showType=1&strSources={typeStr}&strWhere=%28TI%3D%27{keywords}%27%29" +
                 $"&numSortMethod=0&strLicenseCode=&numIp=&numIpc=&numIg=&numIgc=&numIgd=&numUg=&numUgc=&numUgd=&numDg=0&numDgc=" +
-                $"&pageSize=10&pageNow={pageNumber}"));
+                $"&pageSize=10&pageNow={pageNumber}");
             return homePage.Html.ToGrantListPageInfo();
         }
 
@@ -256,10 +256,10 @@ namespace PatentFormVer
 
         private static async Task<PamPageInfo> ParsePamAsync(ScrapingBrowser browser, string type, string id, string number)
         {
-            var homePage = await Task.Run<WebPage>(() => browser.NavigateToPage(
+            var homePage = await browser.NavigateToPageAsync(
                 new Uri("http://epub.sipo.gov.cn/pam.action"),
                 HttpVerb.Post,
-                $"strSources={type}&strWhere=PN%3D%27{id}%27&recordCursor={number}&strLicenseCode="));
+                $"strSources={type}&strWhere=PN%3D%27{id}%27&recordCursor={number}&strLicenseCode=");
             return homePage.Html.ToPamPageInfo();
         }
     }
