@@ -17,6 +17,7 @@
     using System.Text.RegularExpressions;
     using System.Threading;
     using System.Threading.Tasks;
+    using System.Web;
     using System.Windows.Forms;
 
     public partial class MainForm : Form
@@ -51,23 +52,35 @@
         private async void btnSearch_Click(object sender, EventArgs e)
         {
             DisableSearch();
-            await Search(txtKeywords.Text, SourceType.InventPublish);
+            var type = radIp.Checked ? SourceType.InventPublish
+                : radUg.Checked ? SourceType.UtilityGrant
+                : radIg.Checked ? SourceType.InventGrant
+                : radDg.Checked ? SourceType.DesignGrant
+                : throw new NotSupportedException("cannot find type");
+            var where = GetWhereClause(this.txtKeywords.Text, this.txtHolder.Text);
+            await Search(where, type);
             EnableSearch();
+            AddStatus($"Finish search for {where}");
         }
 
-        private async Task Search(string keywords, SourceType type)
+        private async Task Search(string where, SourceType type)
         {
             var pageNum = 1;
             var items = new List<RawGrantItemInfo>();
             var maxPage = -1;
             while (true)
             {
-                AddStatus($"Working on page {pageNum}/{maxPage}");
-                var page = await ParsePageAsync(type, keywords, pageNum);
+                if (pageNum == 1 && maxPage == -1)
+                    AddStatus($"Working on first page");
+                else
+                    AddStatus($"Working on page {pageNum}/{maxPage}");
+
+                var page = await ParsePageAsync(type, where, pageNum);
                 items.AddRange(page.Items);
                 SaveEachItem(page.Items);
-                SaveSearch(keywords, type, items);
-                AddStatus($"Saved items from page {pageNum}");
+                page.Items.ToList().ForEach(_ => AddStatus($"Saved item: [{_.Id}] {_.Title}"));
+                SaveSearch(where, type, items);
+                AddStatus($"Saved items from page {pageNum} for where = {where}");
 
                 if (page.MaxPage == page.CurrentPage) break;
                 pageNum = page.NextPage;
@@ -118,9 +131,9 @@
             }
         }
 
-        private void SaveSearch(string keywords, SourceType type, IEnumerable<RawGrantItemInfo> items)
+        private void SaveSearch(string where, SourceType type, IEnumerable<RawGrantItemInfo> items)
         {
-            var filepath = Path.Combine(basePath, $@"{keywords}-{type}.json");
+            var filepath = Path.Combine(basePath, $@"{MakeValidFileName(where)}-{type}.json");
             EnsureDirectoryExist(filepath);
             var json = JsonConvert.SerializeObject(items);
             File.WriteAllText(filepath, json);
@@ -145,7 +158,33 @@
             }));
         }
 
-        private async Task<GrantListPageInfo> ParsePageAsync(SourceType type, string keywords, int pageNumber)
+        private string GetWhereClause(string keywords, string holder)
+        {
+            //PA='%xxxx科技有限公司%' and (TI='区块链')
+            var where = new StringBuilder();
+
+            if (!string.IsNullOrWhiteSpace(holder))
+            {
+                where.Append($"PA='%{holder}%'");
+            }
+
+            if (!string.IsNullOrWhiteSpace(keywords))
+            {
+                if (where.Length > 0) where.Append(" and ");
+                where.Append($"(TI='{keywords}')");
+            }
+
+            return where.ToString();
+        }
+        private static string MakeValidFileName(string name)
+        {
+            string invalidChars = new string(Path.GetInvalidFileNameChars());
+            string escapedInvalidChars = Regex.Escape(invalidChars);
+            string invalidRegex = string.Format(@"([{0}]*\.+$)|([{0}]+)", escapedInvalidChars);
+
+            return Regex.Replace(name, invalidRegex, "_");
+        }
+        private async Task<GrantListPageInfo> ParsePageAsync(SourceType type, string where, int pageNumber)
         {
             var browser = new ScrapingBrowser();
             await this.SetNewCookie(browser);
@@ -153,7 +192,7 @@
             var homePage = await browser.NavigateToPageAsync(
                 new Uri("http://epub.sipo.gov.cn/patentoutline.action"),
                 HttpVerb.Post,
-                $"showType=1&strSources={typeStr}&strWhere=%28TI%3D%27{keywords}%27%29" +
+                $"showType=1&strSources={typeStr}&strWhere={HttpUtility.UrlEncode(where)}" +
                 $"&numSortMethod=0&strLicenseCode=&numIp=&numIpc=&numIg=&numIgc=&numIgd=&numUg=&numUgc=&numUgd=&numDg=0&numDgc=" +
                 $"&pageSize=10&pageNow={pageNumber}");
             return homePage.Html.ToGrantListPageInfo();
