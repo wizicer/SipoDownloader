@@ -225,7 +225,7 @@
 
                 foreach (var link in ginfo.Links)
                 {
-                    var filePath = Path.Combine(dir, $"{link.Title}.pdf");
+                    var filePath = Path.Combine(dir, $"{ginfo.Id}-{ginfo.Title}-{link.Title}.pdf");
                     if (File.Exists(filePath)) continue;
                     var jsonFilePath = Path.Combine(dir, $"{link.Title}.json");
 
