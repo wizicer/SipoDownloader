@@ -46,7 +46,7 @@
             };
 
             webBrowser.Dock = DockStyle.Fill;
-            this.Ui.AddWebBrowser(webBrowser);
+            this.Ui.SetWebBrowser(webBrowser);
 
             while (!refreshed)
             {

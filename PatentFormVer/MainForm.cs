@@ -69,8 +69,13 @@
                 this.mainForm = mainForm;
             }
 
-            public void AddWebBrowser(ChromiumWebBrowser browser)
+            public void SetWebBrowser(ChromiumWebBrowser browser)
             {
+                foreach (Control ctrl in this.mainForm.splitContainer1.Panel1.Controls)
+                {
+                    this.mainForm.splitContainer1.Panel1.Controls.Remove(ctrl);
+                }
+
                 this.mainForm.splitContainer1.Panel1.Controls.Add(browser);
             }
 
