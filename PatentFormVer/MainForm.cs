@@ -58,14 +58,13 @@
                 : radDg.Checked ? SourceType.DesignGrant
                 : throw new NotSupportedException("cannot find type");
             var where = GetWhereClause(this.txtKeywords.Text, this.txtHolder.Text);
-            await Search(where, type);
+            await Search(where, type, (int)this.numStartPage.Value);
             EnableSearch();
             AddStatus($"Finish search for {where}");
         }
 
-        private async Task Search(string where, SourceType type)
+        private async Task Search(string where, SourceType type, int pageNum)
         {
-            var pageNum = 1;
             var items = new List<RawGrantItemInfo>();
             var maxPage = -1;
             while (true)
@@ -75,7 +74,23 @@
                 else
                     AddStatus($"Working on page {pageNum}/{maxPage}");
 
-                var page = await ParsePageAsync(type, where, pageNum);
+                GrantListPageInfo page;
+                var retrySleep = 10;
+                while (true)
+                {
+                    try
+                    {
+                        page = await ParsePageAsync(type, where, pageNum);
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        AddStatus($"Failed due to {ex.Message}, sleep {retrySleep}s then retry.");
+                        await Task.Delay(retrySleep * 1000);
+                        retrySleep += 10;
+                    }
+                }
+
                 items.AddRange(page.Items);
                 SaveEachItem(page.Items);
                 page.Items.ToList().ForEach(_ => AddStatus($"Saved item: [{_.Id}] {_.Title}"));
