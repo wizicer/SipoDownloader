@@ -97,8 +97,8 @@
             var webBrowser = new ChromiumWebBrowser(pageUrl);
             webBrowser.FrameLoadEnd += async (s, e) =>
             {
-                var result = await webBrowser.GetCookieManager().VisitUrlCookiesAsync("http://epub.sipo.gov.cn/gjcx.jsp", true);
-                if (result.Any(_ => _.Name == "JSESSIONID"))
+                var result = await webBrowser.GetCookieManager().VisitUrlCookiesAsync(pageUrl, true);
+                if (result.Any(_ => _.Name == "WEB"))
                 {
                     scrapeBrowser.Encoding = Encoding.UTF8;
 
