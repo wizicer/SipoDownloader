@@ -11,6 +11,7 @@
     using Newtonsoft.Json;
     using PatentFormVer.Entity;
     using ScrapySharp.Network;
+    using Serilog;
 
     public class Lister : CrawlerBase
     {
@@ -41,6 +42,7 @@
                     }
                     catch (Exception ex)
                     {
+                        Log.Logger.Warning(ex, "error get and parse page");
                         this.Ui.AddStatus($"Failed due to {ex.Message}, sleep {retrySleep}s then retry.");
                         await Task.Delay(retrySleep * 1000);
                         retrySleep += 10;
@@ -117,10 +119,19 @@
 
         private void SaveSearch(string where, SourceType type, IEnumerable<RawGrantItemInfo> items)
         {
-            var filepath = Path.Combine(basePath, $@"{MakeValidFileName(where)}-{type}.json");
-            EnsureDirectoryExist(filepath);
-            var json = JsonConvert.SerializeObject(items);
-            File.WriteAllText(filepath, json);
+            // to avoid to large to out of memory
+            var groups = items
+                .Select((_, i) => new { group = i / 300, item = _ })
+                .GroupBy(_ => _.group)
+                .ToArray();
+            foreach (var group in groups)
+            {
+                var filepath = Path.Combine(basePath, $@"{MakeValidFileName(where)}-{type}-{group.Key}.json");
+                EnsureDirectoryExist(filepath);
+                var json = JsonConvert.SerializeObject(group.Select(_ => _.item));
+                File.WriteAllText(filepath, json);
+            }
+
         }
     }
 }

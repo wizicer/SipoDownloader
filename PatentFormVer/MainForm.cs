@@ -4,6 +4,7 @@
     using PatentFormVer.Entity;
     using PatentFormVer.Worker;
     using ScrapySharp.Extensions;
+    using Serilog;
     using System;
     using System.ComponentModel;
     using System.Data;
@@ -81,6 +82,7 @@
 
             public void AddStatus(string msg)
             {
+                Log.Logger.Information(msg);
                 this.mainForm.txtStatus.Invoke((Action)(() =>
                 {
                     var newmsg = msg + Environment.NewLine + this.mainForm.txtStatus.Text;
