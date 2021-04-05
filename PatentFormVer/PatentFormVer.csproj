@@ -89,12 +89,15 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Worker\CrawlerBase.cs" />
+    <Compile Include="Worker\Detailer.cs" />
     <Compile Include="Entity\GrantDetailInfo.cs" />
     <Compile Include="Entity\GrantItemInfo.cs" />
     <Compile Include="Entity\GrantListPageInfo.cs" />
     <Compile Include="Entity\PamPageInfo.cs" />
     <Compile Include="Entity\RawGrantItemInfo.cs" />
     <Compile Include="Entity\Enums.cs" />
+    <Compile Include="Worker\Lister.cs" />
     <Compile Include="MainForm.cs">
       <SubType>Form</SubType>
     </Compile>
