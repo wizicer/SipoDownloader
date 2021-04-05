@@ -30,6 +30,8 @@
         {
             this.splitContainer1 = new System.Windows.Forms.SplitContainer();
             this.splitContainer2 = new System.Windows.Forms.SplitContainer();
+            this.numStartPage = new System.Windows.Forms.NumericUpDown();
+            this.label3 = new System.Windows.Forms.Label();
             this.label2 = new System.Windows.Forms.Label();
             this.label1 = new System.Windows.Forms.Label();
             this.groupBox1 = new System.Windows.Forms.GroupBox();
@@ -42,8 +44,6 @@
             this.btnProcess = new System.Windows.Forms.Button();
             this.btnSearch = new System.Windows.Forms.Button();
             this.txtStatus = new System.Windows.Forms.TextBox();
-            this.label3 = new System.Windows.Forms.Label();
-            this.numStartPage = new System.Windows.Forms.NumericUpDown();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -51,8 +51,8 @@
             this.splitContainer2.Panel1.SuspendLayout();
             this.splitContainer2.Panel2.SuspendLayout();
             this.splitContainer2.SuspendLayout();
-            this.groupBox1.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)(this.numStartPage)).BeginInit();
+            this.groupBox1.SuspendLayout();
             this.SuspendLayout();
             // 
             // splitContainer1
@@ -95,6 +95,32 @@
             this.splitContainer2.Size = new System.Drawing.Size(800, 260);
             this.splitContainer2.SplitterDistance = 266;
             this.splitContainer2.TabIndex = 1;
+            // 
+            // numStartPage
+            // 
+            this.numStartPage.Location = new System.Drawing.Point(154, 129);
+            this.numStartPage.Maximum = new decimal(new int[] {
+            1000,
+            0,
+            0,
+            0});
+            this.numStartPage.Name = "numStartPage";
+            this.numStartPage.Size = new System.Drawing.Size(100, 20);
+            this.numStartPage.TabIndex = 4;
+            this.numStartPage.Value = new decimal(new int[] {
+            1,
+            0,
+            0,
+            0});
+            // 
+            // label3
+            // 
+            this.label3.AutoSize = true;
+            this.label3.Location = new System.Drawing.Point(93, 131);
+            this.label3.Name = "label3";
+            this.label3.Size = new System.Drawing.Size(55, 13);
+            this.label3.TabIndex = 3;
+            this.label3.Text = "起始页码";
             // 
             // label2
             // 
@@ -210,34 +236,9 @@
             this.txtStatus.Location = new System.Drawing.Point(0, 0);
             this.txtStatus.Multiline = true;
             this.txtStatus.Name = "txtStatus";
+            this.txtStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtStatus.Size = new System.Drawing.Size(530, 260);
             this.txtStatus.TabIndex = 0;
-            // 
-            // label3
-            // 
-            this.label3.AutoSize = true;
-            this.label3.Location = new System.Drawing.Point(93, 131);
-            this.label3.Name = "label3";
-            this.label3.Size = new System.Drawing.Size(55, 13);
-            this.label3.TabIndex = 3;
-            this.label3.Text = "起始页码";
-            // 
-            // numStartPage
-            // 
-            this.numStartPage.Location = new System.Drawing.Point(154, 129);
-            this.numStartPage.Maximum = new decimal(new int[] {
-            1000,
-            0,
-            0,
-            0});
-            this.numStartPage.Name = "numStartPage";
-            this.numStartPage.Size = new System.Drawing.Size(100, 20);
-            this.numStartPage.TabIndex = 4;
-            this.numStartPage.Value = new decimal(new int[] {
-            1,
-            0,
-            0,
-            0});
             // 
             // MainForm
             // 
@@ -257,9 +258,9 @@
             this.splitContainer2.Panel2.PerformLayout();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer2)).EndInit();
             this.splitContainer2.ResumeLayout(false);
+            ((System.ComponentModel.ISupportInitialize)(this.numStartPage)).EndInit();
             this.groupBox1.ResumeLayout(false);
             this.groupBox1.PerformLayout();
-            ((System.ComponentModel.ISupportInitialize)(this.numStartPage)).EndInit();
             this.ResumeLayout(false);
 
         }
