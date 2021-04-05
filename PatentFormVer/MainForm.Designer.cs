@@ -100,7 +100,7 @@
             // 
             this.numStartPage.Location = new System.Drawing.Point(154, 129);
             this.numStartPage.Maximum = new decimal(new int[] {
-            1000,
+            1000000,
             0,
             0,
             0});
