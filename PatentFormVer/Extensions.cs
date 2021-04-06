@@ -43,8 +43,7 @@
                         return null;
                 }));
                 text = HtmlEntity.DeEntitize(text);
-                var segs = text.Split(
-                    new[] { "：" }, 2, StringSplitOptions.RemoveEmptyEntries);
+                var segs = text.SplitTwo("：");
                 if (segs.Length == 1)
                 {
                     var last = details.Last();
@@ -71,8 +70,7 @@
             if (desc.EndsWith("全部")) desc = desc.Substring(0, desc.Length - 2).Trim();
 
             desc = HtmlEntity.DeEntitize(desc);
-            var d = desc.Split(
-                new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
+            var d = desc.SplitTwo("：");
             leadingDesc = d[0].Trim();
             desc = d[1].Trim();
 
@@ -130,6 +128,13 @@
                 Title = title,
                 Type = type,
             };
+        }
+
+        public static string[] SplitTwo(this string str, string separator)
+        {
+            var pos = str.IndexOf(separator);
+            if (pos == -1) return new[] { str };
+            return new[] { str.Substring(0, pos), str.Substring(pos + 1), };
         }
 
         public static PatentItemInfo ToPatentInfo(this GrantItemInfo info)
