@@ -57,23 +57,26 @@
                 details.Add(new GrantDetailInfo { Name = segs[0].Trim(), Values = vals });
             }
 
+            // parse description
             var docDesc = new HtmlDocument();
             docDesc.LoadHtml(info.Description);
             var desc = docDesc.DocumentNode.InnerText;
             var leadingDesc = "";
-            if (desc.EndsWith("全部"))
+            if (!desc.EndsWith("全部"))
             {
-                desc = desc.Substring(0, desc.Length - 2).Trim();
-                desc = HtmlEntity.DeEntitize(desc);
-                var d = desc.Split(
-                    new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
-                leadingDesc = d[0].Trim();
-                desc = d[1].Trim();
-            }
-            else
-            {
+                throw new Exception();
             }
 
+            desc = desc.Substring(0, desc.Length - 2).Trim();
+            desc = HtmlEntity.DeEntitize(desc);
+            var d = desc.Split(
+                new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
+            leadingDesc = d[0].Trim();
+            desc = d[1].Trim();
+
+            details.Add(new GrantDetailInfo { Name = leadingDesc, Values = new[] { desc } });
+
+            // parse links
             var rePam = new Regex(@"javascript\:pam3\('(?<type>[piudg]{3})','(?<id>.+)','(?<index>\d?)'\);");
             var reTx = new Regex(@"javascript\:sw_xx\('(?<number>.*)'\);");
             var docLinks = new HtmlDocument();
@@ -116,8 +119,6 @@
 
             return new GrantItemInfo
             {
-                Description = desc,
-                LeadingDescription = leadingDesc,
                 Id = info.Id,
                 Details = details.ToArray(),
                 ThumbImage = info.Image,

@@ -10,8 +10,6 @@
         public string Type { get; set; }
         public string Title { get; set; }
         public GrantDetailInfo[] Details { get; set; }
-        public string LeadingDescription { get; set; }
-        public string Description { get; set; }
         public GrantItemLinkBase[] Links { get; set; }
         public string QrImage { get; set; }
     }
