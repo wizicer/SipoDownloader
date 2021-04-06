@@ -175,6 +175,12 @@
                 }
             }
 
+            // simplify some unnecessary fields to reduce size
+            pti.Address = null;
+            pti.ClassNumbers = null;
+            pti.Agents = null;
+            pti.Agency = null;
+
             return pti;
         }
 
