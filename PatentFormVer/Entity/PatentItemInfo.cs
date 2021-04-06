@@ -24,9 +24,13 @@ namespace PatentFormVer.Entity
         public DateTime? ApplicationDate { get; set; }
         // 同一申请的已公布的文献号
         public string LiteratureNumber { get; set; }
+        // 申请公布号
+        public string ApplicationPublishNumber { get; set; }
         // 申请公布日
         [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
         public DateTime? ApplicationPublishDate { get; set; }
+        // 申请人
+        public string[] Applicants { get; set; }
         // 专利权人
         public string[] Patentees { get; set; }
         // 发明人
