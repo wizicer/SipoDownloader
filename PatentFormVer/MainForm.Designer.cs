@@ -44,6 +44,7 @@
             this.btnProcess = new System.Windows.Forms.Button();
             this.btnSearch = new System.Windows.Forms.Button();
             this.txtStatus = new System.Windows.Forms.TextBox();
+            this.btnIntegrate = new System.Windows.Forms.Button();
             ((System.ComponentModel.ISupportInitialize)(this.splitContainer1)).BeginInit();
             this.splitContainer1.Panel2.SuspendLayout();
             this.splitContainer1.SuspendLayout();
@@ -86,6 +87,7 @@
             this.splitContainer2.Panel1.Controls.Add(this.groupBox1);
             this.splitContainer2.Panel1.Controls.Add(this.txtHolder);
             this.splitContainer2.Panel1.Controls.Add(this.txtKeywords);
+            this.splitContainer2.Panel1.Controls.Add(this.btnIntegrate);
             this.splitContainer2.Panel1.Controls.Add(this.btnProcess);
             this.splitContainer2.Panel1.Controls.Add(this.btnSearch);
             // 
@@ -216,7 +218,7 @@
             this.btnProcess.Name = "btnProcess";
             this.btnProcess.Size = new System.Drawing.Size(75, 23);
             this.btnProcess.TabIndex = 0;
-            this.btnProcess.Text = "Process";
+            this.btnProcess.Text = "Download Detail";
             this.btnProcess.UseVisualStyleBackColor = true;
             this.btnProcess.Click += new System.EventHandler(this.btnProcess_ClickAsync);
             // 
@@ -239,6 +241,16 @@
             this.txtStatus.ScrollBars = System.Windows.Forms.ScrollBars.Vertical;
             this.txtStatus.Size = new System.Drawing.Size(530, 260);
             this.txtStatus.TabIndex = 0;
+            // 
+            // btnIntegrate
+            // 
+            this.btnIntegrate.Location = new System.Drawing.Point(179, 225);
+            this.btnIntegrate.Name = "btnIntegrate";
+            this.btnIntegrate.Size = new System.Drawing.Size(75, 23);
+            this.btnIntegrate.TabIndex = 0;
+            this.btnIntegrate.Text = "Integrate";
+            this.btnIntegrate.UseVisualStyleBackColor = true;
+            this.btnIntegrate.Click += new System.EventHandler(this.btnIntegrate_Click);
             // 
             // MainForm
             // 
@@ -283,6 +295,7 @@
         private System.Windows.Forms.TextBox txtHolder;
         private System.Windows.Forms.NumericUpDown numStartPage;
         private System.Windows.Forms.Label label3;
+        private System.Windows.Forms.Button btnIntegrate;
     }
 }
 

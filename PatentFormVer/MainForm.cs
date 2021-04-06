@@ -91,5 +91,11 @@
                 }));
             }
         }
+
+        private async void btnIntegrate_Click(object sender, EventArgs e)
+        {
+            var integrator = new Integrator(this.ui);
+            await integrator.IntegrateAsync();
+        }
     }
 }

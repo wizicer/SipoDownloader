@@ -14,6 +14,7 @@
     using System.Text;
     using System.Text.RegularExpressions;
     using System.Threading.Tasks;
+    using System.Web;
 
     public static class Extensions
     {
@@ -31,18 +32,29 @@
             foreach (var li in lis)
             {
                 if (string.IsNullOrWhiteSpace(li.InnerText)) continue;
-                var text = li.ChildNodes.First().InnerText;
+                var text = string.Join("", li.ChildNodes.Select(_ =>
+                {
+                    if (_.NodeType == HtmlNodeType.Text)
+                        return _.InnerText;
+                    else if (_.NodeType == HtmlNodeType.Element && _.Name == "div"
+                        && _.ChildNodes.Count == 1 && _.ChildNodes.First().NodeType == HtmlNodeType.Text)
+                        return _.ChildNodes.First().InnerText;
+                    else
+                        return null;
+                }));
                 text = HtmlEntity.DeEntitize(text);
-                var d = text.Split(
+                var segs = text.Split(
                     new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
-                if (d.Length == 1)
+                if (segs.Length != 2)
                 {
-                    details.Last().Content += d[0].Trim();
+                    throw new Exception();
                 }
-                else
-                {
-                    details.Add(new GrantDetailInfo { Name = d[0].Trim(), Content = d[1].Trim() });
-                }
+
+                var vals = segs[1]
+                    .Split(new[] { ";" }, StringSplitOptions.RemoveEmptyEntries)
+                    .Select(_ => _.Trim())
+                    .ToArray();
+                details.Add(new GrantDetailInfo { Name = segs[0].Trim(), Values = vals });
             }
 
             var docDesc = new HtmlDocument();
