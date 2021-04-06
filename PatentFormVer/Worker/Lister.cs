@@ -121,7 +121,7 @@
         {
             // to avoid to large to out of memory
             var groups = items
-                .Select((_, i) => new { group = i / 300, item = _ })
+                .Select((_, i) => new { group = i / 3000, item = _ })
                 .GroupBy(_ => _.group)
                 .ToArray();
             foreach (var group in groups)
