@@ -154,10 +154,10 @@
                     case "同一申请的已公布的文献号": pti.LiteratureNumber = field.Values.Single(); break;
                     case "申请公布号": pti.ApplicationPublishNumber = field.Values.Single(); break;
                     case "申请公布日": pti.ApplicationPublishDate = DateTime.Parse(field.Values.Single()); break;
-                    case "申请人": pti.Patentees = field.Values; break;
+                    case "申请人": pti.Applicants = field.Values; break;
                     case "专利权人": pti.Patentees = field.Values; break;
                     case "发明人": pti.Inventors = field.Values; break;
-                    case "地址": pti.Address = field.Values.Single(); break;
+                    case "地址": pti.Address = string.Join(";", field.Values); break;
                     case "分类号": pti.ClassNumbers = field.Values; break;
                     case "专利代理机构": pti.Agency = field.Values.Single(); break;
                     case "代理人": pti.Agents = field.Values; break;
