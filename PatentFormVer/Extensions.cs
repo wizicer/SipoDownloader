@@ -44,8 +44,14 @@
                 }));
                 text = HtmlEntity.DeEntitize(text);
                 var segs = text.Split(
-                    new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
-                if (segs.Length != 2)
+                    new[] { "：" }, 2, StringSplitOptions.RemoveEmptyEntries);
+                if (segs.Length == 1)
+                {
+                    var last = details.Last();
+                    segs = new[] { last.Name, string.Join(";", last.Values.Concat(new[] { segs[0] })) };
+                    details.Remove(last);
+                }
+                else if (segs.Length > 2)
                 {
                     throw new Exception();
                 }
@@ -62,12 +68,8 @@
             docDesc.LoadHtml(info.Description);
             var desc = docDesc.DocumentNode.InnerText;
             var leadingDesc = "";
-            if (!desc.EndsWith("全部"))
-            {
-                throw new Exception();
-            }
+            if (desc.EndsWith("全部")) desc = desc.Substring(0, desc.Length - 2).Trim();
 
-            desc = desc.Substring(0, desc.Length - 2).Trim();
             desc = HtmlEntity.DeEntitize(desc);
             var d = desc.Split(
                 new[] { "：" }, StringSplitOptions.RemoveEmptyEntries);
@@ -128,6 +130,50 @@
                 Title = title,
                 Type = type,
             };
+        }
+
+        public static PatentItemInfo ToPatentInfo(this GrantItemInfo info)
+        {
+            var pti = new PatentItemInfo
+            {
+                Id = info.Id,
+                Title = info.Title,
+                Type = info.Type,
+                Preview = info.Image,
+                QrImage = info.QrImage,
+            };
+
+            foreach (var field in info.Details)
+            {
+                switch (field.Name)
+                {
+                    case "授权公告号": pti.PublicationNumber = field.Values.Single(); break;
+                    case "授权公告日": pti.PublicationDate = DateTime.Parse(field.Values.Single()); break;
+                    case "申请号": pti.ApplicationNumber = field.Values.Single(); break;
+                    case "申请日": pti.ApplicationDate = DateTime.Parse(field.Values.Single()); break;
+                    case "同一申请的已公布的文献号": pti.LiteratureNumber = field.Values.Single(); break;
+                    case "申请公布日": pti.ApplicationPublishDate = DateTime.Parse(field.Values.Single()); break;
+                    case "专利权人": pti.Patentees = field.Values; break;
+                    case "发明人": pti.Inventors = field.Values; break;
+                    case "地址": pti.Address = field.Values.Single(); break;
+                    case "分类号": pti.ClassNumbers = field.Values; break;
+                    case "专利代理机构": pti.Agency = field.Values.Single(); break;
+                    case "代理人": pti.Agents = field.Values; break;
+                    case "摘要": pti.Description = field.Values.Single(); break;
+                    case "对比文件": pti.Files = field.Values; break;
+                    case "本国优先权": pti.NationalPriorities = field.Values; break;
+                    case "优先权": pti.Priorities = field.Values; break;
+                    case "PCT进入国家阶段日": pti.PctEntryDate = DateTime.Parse(field.Values.Single()); break;
+                    case "PCT申请数据": pti.PctApplicationData = field.Values.Single(); break;
+                    case "PCT公布数据": pti.PctPublicationData = field.Values.Single(); break;
+                    case "分案原申请": pti.OriginalApplication = field.Values.Single(); break;
+
+                    default:
+                        throw new Exception();
+                }
+            }
+
+            return pti;
         }
 
         public static string ToTypeString(this SourceType type)

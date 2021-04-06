@@ -95,6 +95,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Entity\PatentItemInfo.cs" />
     <Compile Include="Worker\CrawlerBase.cs" />
     <Compile Include="Worker\Detailer.cs" />
     <Compile Include="Entity\GrantDetailInfo.cs" />
