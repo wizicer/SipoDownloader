@@ -23,6 +23,7 @@
         [JsonProperty("pubno")]
         public string PublicationNumber { get; set; }
         // 授权公告日
+        [JsonConverter(typeof(DateFormatConverter), "yyyy-MM-dd")]
         [JsonProperty("pubdate")]
         public DateTime? PublicationDate { get; set; }
         // 申请号
