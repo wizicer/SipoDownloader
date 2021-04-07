@@ -36,8 +36,9 @@
 
             await Task.WhenAll(tasks);
 
-            var gjson = JsonConvert.SerializeObject(list, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
-            File.WriteAllText(Path.Combine(basePath, "list.js"), "var patents = " + gjson);
+            var slist = list.OrderBy(_ => _.Id).ToArray();
+            var gjson = JsonConvert.SerializeObject(slist, Formatting.Indented, new JsonSerializerSettings { NullValueHandling = NullValueHandling.Ignore });
+            File.WriteAllText(Path.Combine(basePath, "patents.js"), "var patents = " + gjson);
             this.Ui.AddStatus("list.js generated.");
         }
     }
